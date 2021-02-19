@@ -21,7 +21,9 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // ***********************************************************************
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Tasks;
 using NUnit.Framework.Api;
@@ -49,7 +51,7 @@ namespace NUnit.Runner.Helpers
             foreach (var (assembly,options) in _testAssemblies)
             {
                 NUnitTestAssemblyRunner runner = await LoadTestAssemblyAsync(assembly, options).ConfigureAwait(false);
-                ITestResult result = await Task.Run(() => runner.Run(TestListener.NULL, TestFilter.Empty)).ConfigureAwait(false);
+                ITestResult result = await Task.Run(() => runner.Run(new DebugWindowTestListener(runner.CountTestCases(TestFilter.Empty)), TestFilter.Empty)).ConfigureAwait(false);
                 resultPackage.AddResult(result);
             }
             resultPackage.CompleteTestRun();
@@ -61,6 +63,56 @@ namespace NUnit.Runner.Helpers
             var runner = new NUnitTestAssemblyRunner(new DefaultTestAssemblyBuilder());
             await Task.Run(() => runner.Load(assembly, options ?? new Dictionary<string, object>()));
             return runner;
+        }
+    }
+
+    public class DebugWindowTestListener : ITestListener
+    {
+        private readonly int _totalTestCount;
+        private int _totalPassed;
+        private int _totalFailed;
+
+        public DebugWindowTestListener(int totalTestCount)
+        {
+            _totalTestCount = totalTestCount;
+        }
+
+        private int PercentComplete => (int)Math.Round((_totalPassed + _totalFailed) / (double)_totalTestCount * 100.0);
+
+        public void TestStarted(ITest test)
+        {
+            if (test.HasChildren)
+                return;
+
+            Debug.WriteLine($"{PercentComplete:D2}% Test '{test.FullName}' started.");
+        }
+
+        public void TestFinished(ITestResult result)
+        {
+            if (result.HasChildren)
+                return;
+
+            switch (result.ResultState.Status)
+            {
+                case TestStatus.Passed:
+                case TestStatus.Inconclusive:
+                case TestStatus.Skipped:
+                case TestStatus.Warning:
+                    _totalPassed++;
+                    break;
+
+                case TestStatus.Failed:
+                    _totalFailed++;
+                    break;
+            }
+
+            var percentPassed = (int)Math.Round(_totalPassed / (double) _totalTestCount * 100.0);
+
+            Debug.WriteLine($"{PercentComplete:D2}% Test '{result.FullName}' finished.  Results:  {result.ResultState}   ( {_totalPassed} / {_totalTestCount} passed = {percentPassed}% )");
+        }
+
+        public void TestOutput(TestOutput output)
+        {
         }
     }
 }
