@@ -69,5 +69,10 @@ namespace NUnit.Runner.Services
         /// Default is [LocalStorage]/TestResults.xml
         /// </summary>
         public string ResultFilePath { get; set; }
+
+        /// <summary>
+        /// An optional callback that will be called before running each test.  Return true if you want the test to run, otherwise false.  The default null value will not apply a filter.
+        /// </summary>
+        public Func<string, bool> ShouldExecuteTestCallback { get; set; }
     }
 }

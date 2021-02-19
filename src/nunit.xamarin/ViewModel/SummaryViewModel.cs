@@ -138,7 +138,7 @@ namespace NUnit.Runner.ViewModel
         {
             Running = true;
             Results = null;
-            TestRunResult results = await _testPackage.ExecuteTests();
+            TestRunResult results = await _testPackage.ExecuteTests(Options.ShouldExecuteTestCallback);
             ResultSummary summary = new ResultSummary(results);
 
             _resultProcessor = TestResultProcessor.BuildChainOfResponsability(Options);

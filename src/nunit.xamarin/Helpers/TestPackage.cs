@@ -44,14 +44,18 @@ namespace NUnit.Runner.Helpers
             _testAssemblies.Add( (testAssembly, options) );
         }
 
-        public async Task<TestRunResult> ExecuteTests()
+        public async Task<TestRunResult> ExecuteTests(Func<string, bool> shouldExecuteTestCallback)
         {
             var resultPackage = new TestRunResult();
+
+            var testFilter = shouldExecuteTestCallback == null
+                ? TestFilter.Empty
+                : new CallbackTestFilter(shouldExecuteTestCallback);
 
             foreach (var (assembly,options) in _testAssemblies)
             {
                 NUnitTestAssemblyRunner runner = await LoadTestAssemblyAsync(assembly, options).ConfigureAwait(false);
-                ITestResult result = await Task.Run(() => runner.Run(new DebugWindowTestListener(runner.CountTestCases(TestFilter.Empty)), TestFilter.Empty)).ConfigureAwait(false);
+                ITestResult result = await Task.Run(() => runner.Run(new DebugWindowTestListener(runner.CountTestCases(testFilter)), testFilter)).ConfigureAwait(false);
                 resultPackage.AddResult(result);
             }
             resultPackage.CompleteTestRun();
@@ -63,6 +67,26 @@ namespace NUnit.Runner.Helpers
             var runner = new NUnitTestAssemblyRunner(new DefaultTestAssemblyBuilder());
             await Task.Run(() => runner.Load(assembly, options ?? new Dictionary<string, object>()));
             return runner;
+        }
+    }
+
+    public class CallbackTestFilter : TestFilter
+    {
+        private readonly Func<string, bool> _shouldExecuteTestCallback;
+
+        public CallbackTestFilter(Func<string, bool> shouldExecuteTestCallback)
+        {
+            _shouldExecuteTestCallback = shouldExecuteTestCallback ?? throw new ArgumentNullException(nameof(shouldExecuteTestCallback));
+        }
+
+        public override bool Match(ITest test)
+        {
+            return _shouldExecuteTestCallback(test.FullName);
+        }
+
+        public override TNode AddToXml(TNode parentNode, bool recursive)
+        {
+            return parentNode.AddElement("filter");
         }
     }
 
@@ -84,7 +108,8 @@ namespace NUnit.Runner.Helpers
             if (test.HasChildren)
                 return;
 
-            Debug.WriteLine($"{PercentComplete:D2}% Test '{test.FullName}' started.");
+            if (Debugger.IsLogging())
+                Trace.WriteLine($"{PercentComplete:D2}% Test '{test.FullName}' started.");
         }
 
         public void TestFinished(ITestResult result)
@@ -108,10 +133,15 @@ namespace NUnit.Runner.Helpers
 
             var percentPassed = (int)Math.Round(_totalPassed / (double) _totalTestCount * 100.0);
 
-            Debug.WriteLine($"{PercentComplete:D2}% Test '{result.FullName}' finished.  Results:  {result.ResultState}   ( {_totalPassed} / {_totalTestCount} passed = {percentPassed}% )");
+            if (Debugger.IsLogging())
+                Trace.WriteLine($"{PercentComplete:D2}% Test '{result.FullName}' finished.  Results:  {result.ResultState}   ( {_totalPassed} / {_totalTestCount} passed = {percentPassed}% )");
         }
 
         public void TestOutput(TestOutput output)
+        {
+        }
+
+        public void SendMessage(TestMessage message)
         {
         }
     }
