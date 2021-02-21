@@ -101,7 +101,7 @@ namespace NUnit.Runner.Helpers
             _totalTestCount = totalTestCount;
         }
 
-        private int PercentComplete => (int)Math.Round((_totalPassed + _totalFailed) / (double)_totalTestCount * 100.0);
+        private int PercentComplete => _totalTestCount == 0 ? 100 : (int)Math.Round((_totalPassed + _totalFailed) / (double)_totalTestCount * 100.0);
 
         public void TestStarted(ITest test)
         {
@@ -131,7 +131,7 @@ namespace NUnit.Runner.Helpers
                     break;
             }
 
-            var percentPassed = (int)Math.Round(_totalPassed / (double) _totalTestCount * 100.0);
+            var percentPassed = _totalTestCount == 0 ? 100 : (int)Math.Round(_totalPassed / (double) _totalTestCount * 100.0);
 
             if (Debugger.IsLogging())
                 Trace.WriteLine($"{PercentComplete:D2}% Test '{result.FullName}' finished.  Results:  {result.ResultState}   ( {_totalPassed} / {_totalTestCount} passed = {percentPassed}% )");
