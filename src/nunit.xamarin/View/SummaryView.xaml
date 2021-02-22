@@ -1,17 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModel="clr-namespace:NUnit.Runner.ViewModel;assembly=nunit.xamarin"
              x:Class="NUnit.Runner.View.SummaryView"
              Title="NUnit 3"
              Padding="10"
-             BackgroundColor="{DynamicResource defaultBackground}" >
+             BackgroundColor="{DynamicResource defaultBackground}"
+             x:DataType="viewModel:SummaryViewModel">
     <ContentPage.Triggers>
         <DataTrigger TargetType="ContentPage" Binding="{Binding Running}" Value="True">
             <Setter Property="IsBusy" Value="True" />
         </DataTrigger>
     </ContentPage.Triggers>
     <StackLayout Orientation="Vertical" Spacing="4" HorizontalOptions="FillAndExpand" VerticalOptions="FillAndExpand" BackgroundColor="{DynamicResource defaultBackground}">
-        <Button Text="Run Tests" Command="{Binding RunTestsCommand}"  HorizontalOptions="FillAndExpand">
+        <Button Text="{Binding RunButtonText}" Command="{Binding RunTestsCommand}"  HorizontalOptions="FillAndExpand">
             <Button.Triggers>
                 <DataTrigger TargetType="Button" Binding="{Binding Running}" Value="True">
                     <Setter Property="IsEnabled" Value="False" />

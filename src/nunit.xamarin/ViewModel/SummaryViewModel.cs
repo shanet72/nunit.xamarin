@@ -23,6 +23,7 @@
 
 using System.Reflection;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using NUnit.Runner.Helpers;
@@ -134,11 +135,33 @@ namespace NUnit.Runner.ViewModel
             _testPackage.AddAssembly(testAssembly, options);
         }
 
+        private string _runButtonText = "Run Tests";
+        public string RunButtonText
+        {
+            get => _runButtonText;
+            set
+            {
+                if (_runButtonText == value)
+                    return;
+
+                _runButtonText = value;
+                OnPropertyChanged(nameof(RunButtonText));
+            } 
+        }
+
         async Task ExecuteTestsAync()
         {
             Running = true;
             Results = null;
-            TestRunResult results = await _testPackage.ExecuteTests(Options.ShouldExecuteTestCallback);
+            TestRunResult results = await _testPackage.ExecuteTests(Options.ShouldExecuteTestCallback,
+                (runningAssembly, complete) =>
+                {
+                    Device.BeginInvokeOnMainThread(() =>
+                    {
+                        var fileName = Path.GetFileName(runningAssembly);
+                        RunButtonText = $"Running {fileName}:  {complete:D2}%";
+                    });
+                });
             ResultSummary summary = new ResultSummary(results);
 
             _resultProcessor = TestResultProcessor.BuildChainOfResponsability(Options);
@@ -146,9 +169,11 @@ namespace NUnit.Runner.ViewModel
 
             Device.BeginInvokeOnMainThread(
                 () =>
-                    {
-                        Results = summary;
-                        Running = false;
+                {
+                    RunButtonText = "Testing Completed.";
+
+                    Results = summary;
+                    Running = false;
 
                     if (Options.TerminateAfterExecution)
                         TerminateWithSuccess();

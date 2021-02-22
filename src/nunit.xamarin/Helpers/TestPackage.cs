@@ -44,7 +44,9 @@ namespace NUnit.Runner.Helpers
             _testAssemblies.Add( (testAssembly, options) );
         }
 
-        public async Task<TestRunResult> ExecuteTests(Func<string, bool> shouldExecuteTestCallback)
+        public delegate void UpdatedResultsCallback(string assemblyBeingRan, int assemblyPercentComplete);
+
+        public async Task<TestRunResult> ExecuteTests(Func<string, bool> shouldExecuteTestCallback, UpdatedResultsCallback resultsCallback)
         {
             var resultPackage = new TestRunResult();
 
@@ -55,7 +57,7 @@ namespace NUnit.Runner.Helpers
             foreach (var (assembly,options) in _testAssemblies)
             {
                 NUnitTestAssemblyRunner runner = await LoadTestAssemblyAsync(assembly, options).ConfigureAwait(false);
-                ITestResult result = await Task.Run(() => runner.Run(new DebugWindowTestListener(runner.CountTestCases(testFilter)), testFilter)).ConfigureAwait(false);
+                ITestResult result = await Task.Run(() => runner.Run(new DebugWindowTestListener(runner.CountTestCases(testFilter), resultsCallback), testFilter)).ConfigureAwait(false);
                 resultPackage.AddResult(result);
             }
             resultPackage.CompleteTestRun();
@@ -70,7 +72,7 @@ namespace NUnit.Runner.Helpers
         }
     }
 
-    public class CallbackTestFilter : TestFilter
+    internal class CallbackTestFilter : TestFilter
     {
         private readonly Func<string, bool> _shouldExecuteTestCallback;
 
@@ -90,15 +92,17 @@ namespace NUnit.Runner.Helpers
         }
     }
 
-    public class DebugWindowTestListener : ITestListener
+    internal class DebugWindowTestListener : ITestListener
     {
         private readonly int _totalTestCount;
         private int _totalPassed;
         private int _totalFailed;
+        private readonly TestPackage.UpdatedResultsCallback _resultsCallbackCallback;
 
-        public DebugWindowTestListener(int totalTestCount)
+        public DebugWindowTestListener(int totalTestCount, TestPackage.UpdatedResultsCallback resultsCallback)
         {
             _totalTestCount = totalTestCount;
+            _resultsCallbackCallback = resultsCallback;
         }
 
         private int PercentComplete => _totalTestCount == 0 ? 100 : (int)Math.Round((_totalPassed + _totalFailed) / (double)_totalTestCount * 100.0);
@@ -135,6 +139,8 @@ namespace NUnit.Runner.Helpers
 
             if (Debugger.IsLogging())
                 Trace.WriteLine($"{PercentComplete:D2}% Test '{result.FullName}' finished.  Results:  {result.ResultState}   ( {_totalPassed} / {_totalTestCount} passed = {percentPassed}% )");
+
+            _resultsCallbackCallback?.Invoke(result.FullName, PercentComplete);            
         }
 
         public void TestOutput(TestOutput output)
