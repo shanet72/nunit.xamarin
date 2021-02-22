@@ -114,6 +114,8 @@ namespace NUnit.Runner.Helpers
 
             if (Debugger.IsLogging())
                 Trace.WriteLine($"{PercentComplete:D2}% Test '{test.FullName}' started.");
+
+            _resultsCallbackCallback?.Invoke(test.FullName, PercentComplete);
         }
 
         public void TestFinished(ITestResult result)
@@ -139,8 +141,6 @@ namespace NUnit.Runner.Helpers
 
             if (Debugger.IsLogging())
                 Trace.WriteLine($"{PercentComplete:D2}% Test '{result.FullName}' finished.  Results:  {result.ResultState}   ( {_totalPassed} / {_totalTestCount} passed = {percentPassed}% )");
-
-            _resultsCallbackCallback?.Invoke(result.FullName, PercentComplete);            
         }
 
         public void TestOutput(TestOutput output)

@@ -164,7 +164,7 @@ namespace NUnit.Runner.ViewModel
                 });
             ResultSummary summary = new ResultSummary(results);
 
-            _resultProcessor = TestResultProcessor.BuildChainOfResponsability(Options);
+            _resultProcessor = TestResultProcessor.BuildChainOfResponsibility(Options);
             await _resultProcessor.Process(summary).ConfigureAwait(false);
 
             Device.BeginInvokeOnMainThread(

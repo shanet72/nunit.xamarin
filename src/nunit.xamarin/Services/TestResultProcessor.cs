@@ -39,7 +39,7 @@ namespace NUnit.Runner.Services
 
         public abstract Task Process(ResultSummary testResult);
 
-        public static TestResultProcessor BuildChainOfResponsability(TestOptions options)
+        public static TestResultProcessor BuildChainOfResponsibility(TestOptions options)
         {
             var tcpWriter = new TcpWriterProcessor(options);
             var xmlFileWriter = new XmlFileProcessor(options);
